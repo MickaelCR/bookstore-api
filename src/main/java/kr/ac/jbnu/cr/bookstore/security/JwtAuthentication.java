@@ -11,7 +11,7 @@ public class JwtAuthentication extends AbstractAuthenticationToken {
     private final String token;
 
     public JwtAuthentication(Long userId, String token) {
-        super(null);
+        super(Collections.emptyList());
         this.userId = userId;
         this.token = token;
         setAuthenticated(true);
