@@ -35,3 +35,20 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# Environment files - NEVER COMMIT
+.env
+*.env
+!.env.example
+
+# Sensitive files
+*.pem
+*.ppk
+*.key
+
+# Logs
+*.log
+logs/
+
+# Application
+temp/
