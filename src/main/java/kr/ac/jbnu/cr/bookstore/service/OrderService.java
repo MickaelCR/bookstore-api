@@ -36,10 +36,10 @@ public class OrderService {
     }
 
     /**
-     * Find order by ID
+     * Find order by ID with details
      */
     public Order findById(Long id) {
-        return orderRepository.findById(id)
+        return orderRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", id));
     }
 
