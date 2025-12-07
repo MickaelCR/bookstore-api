@@ -17,7 +17,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.Objects;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -71,7 +70,7 @@ class AuthServiceTest {
     @DisplayName("Register - Success")
     void register_Success() {
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
-        when(Objects.requireNonNull(passwordEncoder.encode(anyString()))).thenReturn("encodedPassword");
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
         when(jwtService.createToken(any(User.class))).thenReturn("accessToken");
         when(jwtService.createRefreshToken(any(User.class))).thenReturn("refreshToken");
