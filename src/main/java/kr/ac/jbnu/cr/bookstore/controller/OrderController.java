@@ -13,7 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,13 +30,17 @@ public class OrderController {
         this.orderService = orderService;
     }
 
+    private Long getCurrentUserId() {
+        JwtAuthentication auth = (JwtAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        return auth.getUserId();
+    }
+
     @GetMapping
     @Operation(summary = "Get my orders")
     public ResponseEntity<PageResponse<OrderResponse>> getMyOrders(
-            @AuthenticationPrincipal JwtAuthentication auth,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        Page<Order> orders = orderService.findByUserId(auth.getUserId(), pageable);
+        Page<Order> orders = orderService.findByUserId(getCurrentUserId(), pageable);
 
         List<OrderResponse> content = orders.getContent().stream()
                 .map(OrderResponse::from)
@@ -47,28 +51,22 @@ public class OrderController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get order by ID")
-    public ResponseEntity<OrderResponse> getOrderById(
-            @AuthenticationPrincipal JwtAuthentication auth,
-            @PathVariable Long id) {
-
-        Order order = orderService.findByIdForUser(auth.getUserId(), id);
+    public ResponseEntity<OrderResponse> getOrderById(@PathVariable Long id) {
+        Order order = orderService.findByIdForUser(getCurrentUserId(), id);
         return ResponseEntity.ok(OrderResponse.from(order));
     }
 
     @PostMapping
     @Operation(summary = "Create order from cart")
-    public ResponseEntity<OrderResponse> createOrder(@AuthenticationPrincipal JwtAuthentication auth) {
-        Order order = orderService.createFromCart(auth.getUserId());
+    public ResponseEntity<OrderResponse> createOrder() {
+        Order order = orderService.createFromCart(getCurrentUserId());
         return ResponseEntity.status(HttpStatus.CREATED).body(OrderResponse.from(order));
     }
 
     @PatchMapping("/{id}/cancel")
     @Operation(summary = "Cancel order")
-    public ResponseEntity<OrderResponse> cancelOrder(
-            @AuthenticationPrincipal JwtAuthentication auth,
-            @PathVariable Long id) {
-
-        Order order = orderService.cancel(auth.getUserId(), id);
+    public ResponseEntity<OrderResponse> cancelOrder(@PathVariable Long id) {
+        Order order = orderService.cancel(getCurrentUserId(), id);
         return ResponseEntity.ok(OrderResponse.from(order));
     }
 }

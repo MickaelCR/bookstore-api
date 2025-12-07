@@ -17,7 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,6 +32,11 @@ public class ReviewController {
 
     public ReviewController(ReviewService reviewService) {
         this.reviewService = reviewService;
+    }
+
+    private Long getCurrentUserId() {
+        JwtAuthentication auth = (JwtAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        return auth.getUserId();
     }
 
     @GetMapping("/book/{bookId}")
@@ -67,10 +72,9 @@ public class ReviewController {
     @GetMapping("/me")
     @Operation(summary = "Get my reviews")
     public ResponseEntity<PageResponse<ReviewResponse>> getMyReviews(
-            @AuthenticationPrincipal JwtAuthentication auth,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        Page<Review> reviews = reviewService.findByUserId(auth.getUserId(), pageable);
+        Page<Review> reviews = reviewService.findByUserId(getCurrentUserId(), pageable);
 
         List<ReviewResponse> content = reviews.getContent().stream()
                 .map(review -> ReviewResponse.from(review, true))
@@ -88,52 +92,38 @@ public class ReviewController {
 
     @PostMapping
     @Operation(summary = "Create a new review")
-    public ResponseEntity<ReviewResponse> createReview(
-            @AuthenticationPrincipal JwtAuthentication auth,
-            @Valid @RequestBody ReviewRequest request) {
-
-        Review review = reviewService.create(auth.getUserId(), request);
+    public ResponseEntity<ReviewResponse> createReview(@Valid @RequestBody ReviewRequest request) {
+        Review review = reviewService.create(getCurrentUserId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ReviewResponse.from(review));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update a review")
     public ResponseEntity<ReviewResponse> updateReview(
-            @AuthenticationPrincipal JwtAuthentication auth,
             @PathVariable Long id,
             @Valid @RequestBody ReviewUpdateRequest request) {
-
-        Review review = reviewService.update(auth.getUserId(), id, request);
+        Review review = reviewService.update(getCurrentUserId(), id, request);
         return ResponseEntity.ok(ReviewResponse.from(review));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a review")
-    public ResponseEntity<MessageResponse> deleteReview(
-            @AuthenticationPrincipal JwtAuthentication auth,
-            @PathVariable Long id) {
-
-        reviewService.delete(auth.getUserId(), id);
+    public ResponseEntity<MessageResponse> deleteReview(@PathVariable Long id) {
+        reviewService.delete(getCurrentUserId(), id);
         return ResponseEntity.ok(MessageResponse.of("Review deleted successfully"));
     }
 
     @PostMapping("/{id}/like")
     @Operation(summary = "Like a review")
-    public ResponseEntity<MessageResponse> likeReview(
-            @AuthenticationPrincipal JwtAuthentication auth,
-            @PathVariable Long id) {
-
-        reviewService.likeReview(auth.getUserId(), id);
+    public ResponseEntity<MessageResponse> likeReview(@PathVariable Long id) {
+        reviewService.likeReview(getCurrentUserId(), id);
         return ResponseEntity.ok(MessageResponse.of("Review liked successfully"));
     }
 
     @DeleteMapping("/{id}/like")
     @Operation(summary = "Unlike a review")
-    public ResponseEntity<MessageResponse> unlikeReview(
-            @AuthenticationPrincipal JwtAuthentication auth,
-            @PathVariable Long id) {
-
-        reviewService.unlikeReview(auth.getUserId(), id);
+    public ResponseEntity<MessageResponse> unlikeReview(@PathVariable Long id) {
+        reviewService.unlikeReview(getCurrentUserId(), id);
         return ResponseEntity.ok(MessageResponse.of("Review unliked successfully"));
     }
 }

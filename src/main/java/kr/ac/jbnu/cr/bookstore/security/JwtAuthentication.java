@@ -1,5 +1,6 @@
 package kr.ac.jbnu.cr.bookstore.security;
 
+import lombok.Getter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -7,6 +8,7 @@ import java.util.Collections;
 
 public class JwtAuthentication extends AbstractAuthenticationToken {
 
+    @Getter
     private final Long userId;
     private final String token;
 
@@ -34,7 +36,8 @@ public class JwtAuthentication extends AbstractAuthenticationToken {
         return userId;
     }
 
-    public Long getUserId() {
-        return userId;
+    @Override
+    public String getName() {
+        return userId.toString();
     }
 }

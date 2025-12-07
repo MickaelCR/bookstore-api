@@ -15,7 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,13 +34,17 @@ public class FavoriteController {
         this.bookService = bookService;
     }
 
+    private Long getCurrentUserId() {
+        JwtAuthentication auth = (JwtAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        return auth.getUserId();
+    }
+
     @GetMapping
     @Operation(summary = "Get my favorite books")
     public ResponseEntity<PageResponse<BookResponse>> getMyFavorites(
-            @AuthenticationPrincipal JwtAuthentication auth,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        Page<Favorite> favorites = favoriteService.findByUserId(auth.getUserId(), pageable);
+        Page<Favorite> favorites = favoriteService.findByUserId(getCurrentUserId(), pageable);
 
         List<BookResponse> content = favorites.getContent().stream()
                 .map(fav -> BookResponse.from(fav.getBook(),
@@ -53,32 +57,23 @@ public class FavoriteController {
 
     @PostMapping("/{bookId}")
     @Operation(summary = "Add book to favorites")
-    public ResponseEntity<MessageResponse> addFavorite(
-            @AuthenticationPrincipal JwtAuthentication auth,
-            @PathVariable Long bookId) {
-
-        favoriteService.addFavorite(auth.getUserId(), bookId);
+    public ResponseEntity<MessageResponse> addFavorite(@PathVariable Long bookId) {
+        favoriteService.addFavorite(getCurrentUserId(), bookId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(MessageResponse.of("Book added to favorites"));
     }
 
     @DeleteMapping("/{bookId}")
     @Operation(summary = "Remove book from favorites")
-    public ResponseEntity<MessageResponse> removeFavorite(
-            @AuthenticationPrincipal JwtAuthentication auth,
-            @PathVariable Long bookId) {
-
-        favoriteService.removeFavorite(auth.getUserId(), bookId);
+    public ResponseEntity<MessageResponse> removeFavorite(@PathVariable Long bookId) {
+        favoriteService.removeFavorite(getCurrentUserId(), bookId);
         return ResponseEntity.ok(MessageResponse.of("Book removed from favorites"));
     }
 
     @GetMapping("/{bookId}/check")
     @Operation(summary = "Check if book is in favorites")
-    public ResponseEntity<Boolean> checkFavorite(
-            @AuthenticationPrincipal JwtAuthentication auth,
-            @PathVariable Long bookId) {
-
-        boolean isFavorite = favoriteService.isFavorite(auth.getUserId(), bookId);
+    public ResponseEntity<Boolean> checkFavorite(@PathVariable Long bookId) {
+        boolean isFavorite = favoriteService.isFavorite(getCurrentUserId(), bookId);
         return ResponseEntity.ok(isFavorite);
     }
 }
