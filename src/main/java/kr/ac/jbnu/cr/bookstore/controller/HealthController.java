@@ -1,6 +1,7 @@
 package kr.ac.jbnu.cr.bookstore.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.ac.jbnu.cr.bookstore.dto.response.HealthResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,15 +30,12 @@ public class HealthController {
 
     @GetMapping("/health")
     @Operation(summary = "Health check endpoint")
+    @ApiResponse(responseCode = "200", description = "Service is healthy")
     public ResponseEntity<HealthResponse> health() {
         boolean dbConnected = checkDatabaseConnection();
-
         return ResponseEntity.ok(HealthResponse.healthy(version, buildTime, dbConnected));
     }
 
-    /**
-     * Check database connection
-     */
     private boolean checkDatabaseConnection() {
         try (Connection connection = dataSource.getConnection()) {
             return connection.isValid(1);

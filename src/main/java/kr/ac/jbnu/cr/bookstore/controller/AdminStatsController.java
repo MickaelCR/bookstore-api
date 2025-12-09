@@ -1,7 +1,12 @@
 package kr.ac.jbnu.cr.bookstore.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import kr.ac.jbnu.cr.bookstore.dto.response.ErrorResponse;
 import kr.ac.jbnu.cr.bookstore.dto.response.StatsResponse;
 import kr.ac.jbnu.cr.bookstore.model.OrderStatus;
 import kr.ac.jbnu.cr.bookstore.repository.BookRepository;
@@ -35,6 +40,11 @@ public class AdminStatsController {
 
     @GetMapping("/summary")
     @Operation(summary = "Get summary statistics (admin only)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<StatsResponse> getSummaryStats() {
         StatsResponse stats = StatsResponse.builder()
                 .totalUsers(userRepository.count())

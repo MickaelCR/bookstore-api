@@ -1,10 +1,15 @@
 package kr.ac.jbnu.cr.bookstore.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.ac.jbnu.cr.bookstore.dto.request.ReviewRequest;
 import kr.ac.jbnu.cr.bookstore.dto.request.ReviewUpdateRequest;
+import kr.ac.jbnu.cr.bookstore.dto.response.ErrorResponse;
 import kr.ac.jbnu.cr.bookstore.dto.response.MessageResponse;
 import kr.ac.jbnu.cr.bookstore.dto.response.PageResponse;
 import kr.ac.jbnu.cr.bookstore.dto.response.ReviewResponse;
@@ -41,6 +46,7 @@ public class ReviewController {
 
     @GetMapping("/book/{bookId}")
     @Operation(summary = "Get reviews for a book")
+    @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully")
     public ResponseEntity<PageResponse<ReviewResponse>> getReviewsByBook(
             @PathVariable Long bookId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -56,6 +62,7 @@ public class ReviewController {
 
     @GetMapping("/user/{userId}")
     @Operation(summary = "Get reviews by a user")
+    @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully")
     public ResponseEntity<PageResponse<ReviewResponse>> getReviewsByUser(
             @PathVariable Long userId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -71,6 +78,11 @@ public class ReviewController {
 
     @GetMapping("/me")
     @Operation(summary = "Get my reviews")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Reviews retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<PageResponse<ReviewResponse>> getMyReviews(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
@@ -85,6 +97,11 @@ public class ReviewController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get review by ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Review retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Review not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<ReviewResponse> getReviewById(@PathVariable Long id) {
         Review review = reviewService.findById(id);
         return ResponseEntity.ok(ReviewResponse.from(review));
@@ -92,6 +109,17 @@ public class ReviewController {
 
     @PostMapping
     @Operation(summary = "Create a new review")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Review created successfully"),
+            @ApiResponse(responseCode = "400", description = "Validation error",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Book not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Already reviewed this book",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<ReviewResponse> createReview(@Valid @RequestBody ReviewRequest request) {
         Review review = reviewService.create(getCurrentUserId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ReviewResponse.from(review));
@@ -99,6 +127,17 @@ public class ReviewController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Update a review")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Review updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Validation error",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Cannot update another user's review",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Review not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<ReviewResponse> updateReview(
             @PathVariable Long id,
             @Valid @RequestBody ReviewUpdateRequest request) {
@@ -108,6 +147,15 @@ public class ReviewController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a review")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Review deleted successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Cannot delete another user's review",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Review not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<MessageResponse> deleteReview(@PathVariable Long id) {
         reviewService.delete(getCurrentUserId(), id);
         return ResponseEntity.ok(MessageResponse.of("Review deleted successfully"));
@@ -115,6 +163,15 @@ public class ReviewController {
 
     @PostMapping("/{id}/like")
     @Operation(summary = "Like a review")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Review liked successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Review not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Already liked this review",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<MessageResponse> likeReview(@PathVariable Long id) {
         reviewService.likeReview(getCurrentUserId(), id);
         return ResponseEntity.ok(MessageResponse.of("Review liked successfully"));
@@ -122,6 +179,13 @@ public class ReviewController {
 
     @DeleteMapping("/{id}/like")
     @Operation(summary = "Unlike a review")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Review unliked successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Like not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<MessageResponse> unlikeReview(@PathVariable Long id) {
         reviewService.unlikeReview(getCurrentUserId(), id);
         return ResponseEntity.ok(MessageResponse.of("Review unliked successfully"));

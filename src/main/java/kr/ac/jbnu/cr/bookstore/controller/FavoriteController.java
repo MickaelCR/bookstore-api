@@ -1,8 +1,13 @@
 package kr.ac.jbnu.cr.bookstore.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.ac.jbnu.cr.bookstore.dto.response.BookResponse;
+import kr.ac.jbnu.cr.bookstore.dto.response.ErrorResponse;
 import kr.ac.jbnu.cr.bookstore.dto.response.MessageResponse;
 import kr.ac.jbnu.cr.bookstore.dto.response.PageResponse;
 import kr.ac.jbnu.cr.bookstore.model.Favorite;
@@ -41,6 +46,11 @@ public class FavoriteController {
 
     @GetMapping
     @Operation(summary = "Get my favorite books")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Favorites retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<PageResponse<BookResponse>> getMyFavorites(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
@@ -57,6 +67,15 @@ public class FavoriteController {
 
     @PostMapping("/{bookId}")
     @Operation(summary = "Add book to favorites")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Book added to favorites"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Book not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Book already in favorites",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<MessageResponse> addFavorite(@PathVariable Long bookId) {
         favoriteService.addFavorite(getCurrentUserId(), bookId);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -65,6 +84,13 @@ public class FavoriteController {
 
     @DeleteMapping("/{bookId}")
     @Operation(summary = "Remove book from favorites")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Book removed from favorites"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Favorite not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<MessageResponse> removeFavorite(@PathVariable Long bookId) {
         favoriteService.removeFavorite(getCurrentUserId(), bookId);
         return ResponseEntity.ok(MessageResponse.of("Book removed from favorites"));
@@ -72,6 +98,11 @@ public class FavoriteController {
 
     @GetMapping("/{bookId}/check")
     @Operation(summary = "Check if book is in favorites")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Check completed"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<Boolean> checkFavorite(@PathVariable Long bookId) {
         boolean isFavorite = favoriteService.isFavorite(getCurrentUserId(), bookId);
         return ResponseEntity.ok(isFavorite);
