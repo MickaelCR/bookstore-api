@@ -21,7 +21,7 @@ mysql -u root -p -e "CREATE DATABASE bookstore;"
 # Create .env file (see .env.example)
 cp .env.example .env
 
-# Run
+# Run 
 ./gradlew bootRun
 ```
 
