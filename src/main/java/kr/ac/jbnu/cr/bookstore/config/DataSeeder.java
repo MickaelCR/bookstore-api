@@ -581,11 +581,10 @@ public class DataSeeder implements CommandLineRunner {
                 .filter(u -> u.getRole() == Role.USER)
                 .toList();
 
-        for (int i = 0; i < 60; i++) {
+        for (int i = 0; i < 150; i++) {
             User user = regularUsers.get(random.nextInt(regularUsers.size()));
             Book book = books.get(random.nextInt(books.size()));
 
-            // Check if user already reviewed this book
             boolean alreadyReviewed = reviews.stream()
                     .anyMatch(r -> r.getUser().getId().equals(user.getId())
                             && r.getBook().getId().equals(book.getId()));
