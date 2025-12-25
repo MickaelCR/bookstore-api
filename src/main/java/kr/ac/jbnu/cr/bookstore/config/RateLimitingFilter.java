@@ -4,80 +4,60 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
 
-    private final Map<String, RateLimitInfo> requestCounts = new ConcurrentHashMap<>();
+    private final StringRedisTemplate redisTemplate;
     private static final int MAX_REQUESTS_PER_MINUTE = 100;
-    private static final long TIME_WINDOW_MS = 60000;
-    private static final int RETRY_AFTER_SECONDS = 60;
+
+    public RateLimitingFilter(StringRedisTemplate redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain)
+            throws ServletException, IOException {
 
-        String clientIP = getClientIP(request);
-        long now = System.currentTimeMillis();
+        String clientIp = getClientIp(request);
+        String key = "rate_limit:" + clientIp;
 
-        RateLimitInfo rateLimitInfo = requestCounts.compute(clientIP, (key, info) -> {
-            if (info == null || now - info.windowStart > TIME_WINDOW_MS) {
-                return new RateLimitInfo(now, new AtomicInteger(1));
-            }
-            info.count.incrementAndGet();
-            return info;
-        });
+        Long count = redisTemplate.opsForValue().increment(key);
 
-        int remaining = Math.max(0, MAX_REQUESTS_PER_MINUTE - rateLimitInfo.count.get());
-        long resetTimestamp = (rateLimitInfo.windowStart + TIME_WINDOW_MS) / 1000;
+        // Prévention du NullPointerException par unboxing sécurisé
+        long requestCount = (count != null) ? count : 0;
 
-        response.setHeader("RateLimit-Limit", String.valueOf(MAX_REQUESTS_PER_MINUTE));
-        response.setHeader("RateLimit-Remaining", String.valueOf(remaining));
-        response.setHeader("RateLimit-Reset", String.valueOf(resetTimestamp));
+        if (requestCount == 1) {
+            redisTemplate.expire(key, 1, TimeUnit.MINUTES);
+        }
 
-        if (rateLimitInfo.count.get() > MAX_REQUESTS_PER_MINUTE) {
+        if (requestCount > MAX_REQUESTS_PER_MINUTE) {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.setCharacterEncoding("UTF-8");
-            response.setHeader("Retry-After", String.valueOf(RETRY_AFTER_SECONDS));
-
-            response.getWriter().write("""
-                {
-                    "error": "rate_limited",
-                    "retryAfterSeconds": %d
-                }
-                """.formatted(RETRY_AFTER_SECONDS));
+            response.getWriter().write("Too many requests. Please try again later.");
             return;
         }
+
+        response.addHeader("X-RateLimit-Limit", String.valueOf(MAX_REQUESTS_PER_MINUTE));
+        response.addHeader("X-RateLimit-Remaining", String.valueOf(Math.max(0, MAX_REQUESTS_PER_MINUTE - requestCount)));
 
         filterChain.doFilter(request, response);
     }
 
-    private String getClientIP(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
+    private String getClientIp(HttpServletRequest request) {
+        String xfHeader = request.getHeader("X-Forwarded-For");
+        if (xfHeader == null) {
+            return request.getRemoteAddr();
         }
-        return request.getRemoteAddr();
-    }
-
-    private static class RateLimitInfo {
-        long windowStart;
-        AtomicInteger count;
-
-        RateLimitInfo(long windowStart, AtomicInteger count) {
-            this.windowStart = windowStart;
-            this.count = count;
-        }
+        return xfHeader.split(",")[0];
     }
 }

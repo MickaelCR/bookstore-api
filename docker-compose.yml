@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   mysqldb:
     image: mysql:8.0
@@ -15,6 +17,18 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    networks:
+      - bookstore-network
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: bookstore-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - bookstore-network
 
   bookstore-api:
     build: .
@@ -23,14 +37,25 @@ services:
       - "8080:8080"
     environment:
       DB_URL: jdbc:mysql://mysqldb:3306/bookstore?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      DB_USERNAME: ${DB_USERNAME}
+      DB_USERNAME: root
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION}
       JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
     depends_on:
       mysqldb:
         condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - bookstore-network
 
 volumes:
   mysql_data:
+  redis_data:
+
+networks:
+  bookstore-network:
+    driver: bridge
