@@ -4,11 +4,16 @@ import kr.ac.jbnu.cr.bookstore.model.Review;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Getter
 @Builder
-public class ReviewResponse {
+public class ReviewResponse implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private Long id;
     private Long bookId;

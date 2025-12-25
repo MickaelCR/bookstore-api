@@ -1,14 +1,23 @@
 package kr.ac.jbnu.cr.bookstore.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.springframework.data.domain.Page;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.List;
 
 @Getter
 @Builder
-public class PageResponse<T> {
+@NoArgsConstructor
+@AllArgsConstructor
+public class PageResponse<T> implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private List<T> content;
     private int page;

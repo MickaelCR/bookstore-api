@@ -4,6 +4,8 @@ import kr.ac.jbnu.cr.bookstore.model.Book;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -12,7 +14,10 @@ import java.util.stream.Collectors;
 
 @Getter
 @Builder
-public class BookResponse {
+public class BookResponse implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private Long id;
     private String title;

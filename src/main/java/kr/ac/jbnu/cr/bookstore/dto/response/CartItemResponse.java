@@ -4,11 +4,16 @@ import kr.ac.jbnu.cr.bookstore.model.CartItem;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 @Getter
 @Builder
-public class CartItemResponse {
+public class CartItemResponse implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private Long id;
     private Long bookId;

@@ -5,6 +5,8 @@ import kr.ac.jbnu.cr.bookstore.model.OrderStatus;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -12,7 +14,10 @@ import java.util.stream.Collectors;
 
 @Getter
 @Builder
-public class OrderResponse {
+public class OrderResponse implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private Long id;
     private Long userId;
