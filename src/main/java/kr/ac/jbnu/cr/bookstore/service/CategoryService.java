@@ -5,6 +5,8 @@ import kr.ac.jbnu.cr.bookstore.exception.DuplicateResourceException;
 import kr.ac.jbnu.cr.bookstore.exception.ResourceNotFoundException;
 import kr.ac.jbnu.cr.bookstore.model.Category;
 import kr.ac.jbnu.cr.bookstore.repository.CategoryRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,7 +25,9 @@ public class CategoryService {
 
     /**
      * Find all categories
+     * Cette méthode est maintenant mise en cache dans Redis sous la clé "categories".
      */
+    @Cacheable("categories") // <-- AJOUT ICI
     public List<Category> findAll() {
         return categoryRepository.findAll();
     }
@@ -45,8 +49,10 @@ public class CategoryService {
 
     /**
      * Create a new category
+     * Invalide le cache "categories" pour forcer une mise à jour à la prochaine lecture.
      */
     @Transactional
+    @CacheEvict(value = "categories", allEntries = true) // <-- AJOUT ICI
     public Category create(CategoryRequest request) {
         // Check duplicate name
         if (categoryRepository.existsByName(request.getName())) {
@@ -63,8 +69,10 @@ public class CategoryService {
 
     /**
      * Update a category
+     * Invalide le cache "categories".
      */
     @Transactional
+    @CacheEvict(value = "categories", allEntries = true) // <-- AJOUT ICI
     public Category update(Long id, CategoryRequest request) {
         Category category = findById(id);
 
@@ -82,8 +90,10 @@ public class CategoryService {
 
     /**
      * Delete a category
+     * Invalide le cache "categories".
      */
     @Transactional
+    @CacheEvict(value = "categories", allEntries = true) // <-- AJOUT ICI
     public void delete(Long id) {
         Category category = findById(id);
         categoryRepository.delete(category);
