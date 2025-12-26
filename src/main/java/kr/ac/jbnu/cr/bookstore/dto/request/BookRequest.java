@@ -29,6 +29,7 @@ public class BookRequest {
     @Size(max = 5000, message = "Summary must be less than 5000 characters")
     private String summary;
 
+    @NotBlank(message = "ISBN is required")
     @Size(max = 20, message = "ISBN must be less than 20 characters")
     private String isbn;
 
@@ -39,8 +40,11 @@ public class BookRequest {
 
     private LocalDate publicationDate;
 
+    @NotNull(message = "Stock quantity is required")
     @Min(value = 0, message = "Stock quantity cannot be negative")
     private Integer stockQuantity;
 
     private List<Long> categoryIds;
+
+    private List<Long> authorIds;
 }

@@ -3,11 +3,15 @@ package kr.ac.jbnu.cr.bookstore.service;
 import kr.ac.jbnu.cr.bookstore.dto.request.BookRequest;
 import kr.ac.jbnu.cr.bookstore.exception.DuplicateResourceException;
 import kr.ac.jbnu.cr.bookstore.exception.ResourceNotFoundException;
+import kr.ac.jbnu.cr.bookstore.model.Author;
 import kr.ac.jbnu.cr.bookstore.model.Book;
 import kr.ac.jbnu.cr.bookstore.model.Category;
+import kr.ac.jbnu.cr.bookstore.repository.AuthorRepository;
 import kr.ac.jbnu.cr.bookstore.repository.BookRepository;
 import kr.ac.jbnu.cr.bookstore.repository.CategoryRepository;
 import kr.ac.jbnu.cr.bookstore.repository.ReviewRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -15,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class BookService {
@@ -23,13 +29,16 @@ public class BookService {
     private final BookRepository bookRepository;
     private final CategoryRepository categoryRepository;
     private final ReviewRepository reviewRepository;
+    private final AuthorRepository authorRepository;
 
     public BookService(BookRepository bookRepository,
                        CategoryRepository categoryRepository,
-                       ReviewRepository reviewRepository) {
+                       ReviewRepository reviewRepository,
+                       AuthorRepository authorRepository) {
         this.bookRepository = bookRepository;
         this.categoryRepository = categoryRepository;
         this.reviewRepository = reviewRepository;
+        this.authorRepository = authorRepository;
     }
 
     /**
@@ -42,6 +51,7 @@ public class BookService {
     /**
      * Find book by ID
      */
+    @Cacheable(value = "books", key = "#id")
     public Book findById(Long id) {
         return bookRepository.findByIdAndIsActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Book", id));
@@ -73,7 +83,10 @@ public class BookService {
 
     /**
      * Search books with filters
+     * On cache cette recherche pour améliorer les perfs
      */
+    @Transactional(readOnly = true)
+    @Cacheable(value = "book_search", key = "{#keyword, #categoryId, #minPrice, #maxPrice, #pageable.pageNumber}")
     public Page<Book> searchBooks(String keyword, Long categoryId,
                                   BigDecimal minPrice, BigDecimal maxPrice,
                                   Pageable pageable) {
@@ -84,6 +97,7 @@ public class BookService {
      * Create a new book
      */
     @Transactional
+    @CacheEvict(value = {"books", "book_search"}, allEntries = true)
     public Book create(BookRequest request) {
         // Check duplicate ISBN
         if (request.getIsbn() != null && bookRepository.existsByIsbn(request.getIsbn())) {
@@ -100,6 +114,7 @@ public class BookService {
                 .publicationDate(request.getPublicationDate())
                 .stockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0)
                 .categories(new ArrayList<>())
+                .authors(new HashSet<>())
                 .build();
 
         // Add categories
@@ -108,6 +123,8 @@ public class BookService {
             book.setCategories(categories);
         }
 
+        updateBookAuthors(book, request.getAuthorIds());
+
         return bookRepository.save(book);
     }
 
@@ -115,10 +132,10 @@ public class BookService {
      * Update a book
      */
     @Transactional
+    @CacheEvict(value = {"books", "book_search"}, allEntries = true)
     public Book update(Long id, BookRequest request) {
         Book book = findById(id);
 
-        // Check duplicate ISBN (if changed)
         if (request.getIsbn() != null
                 && !request.getIsbn().equals(book.getIsbn())
                 && bookRepository.existsByIsbn(request.getIsbn())) {
@@ -126,7 +143,10 @@ public class BookService {
         }
 
         book.setTitle(request.getTitle());
-        book.setAuthor(request.getAuthor());
+        if (request.getAuthor() != null) {
+            book.setAuthor(request.getAuthor());
+        }
+
         book.setPublisher(request.getPublisher());
         book.setSummary(request.getSummary());
         book.setIsbn(request.getIsbn());
@@ -137,10 +157,13 @@ public class BookService {
             book.setStockQuantity(request.getStockQuantity());
         }
 
-        // Update categories
         if (request.getCategoryIds() != null) {
             List<Category> categories = categoryRepository.findAllById(request.getCategoryIds());
             book.setCategories(categories);
+        }
+
+        if (request.getAuthorIds() != null) {
+            updateBookAuthors(book, request.getAuthorIds());
         }
 
         return bookRepository.save(book);
@@ -150,6 +173,7 @@ public class BookService {
      * Delete a book (soft delete)
      */
     @Transactional
+    @CacheEvict(value = {"books", "book_search"}, allEntries = true)
     public void delete(Long id) {
         Book book = findById(id);
         book.setIsActive(false);
@@ -175,5 +199,19 @@ public class BookService {
      */
     public List<Book> getTopBooks() {
         return bookRepository.findTop10ByIsActiveTrueOrderByViewCountDesc();
+    }
+
+    private void updateBookAuthors(Book book, List<Long> authorIds) {
+        if (authorIds != null && !authorIds.isEmpty()) {
+            List<Author> authors = authorRepository.findAllById(authorIds);
+            book.setAuthors(new HashSet<>(authors));
+
+            if (!authors.isEmpty()) {
+                String authorNames = authors.stream()
+                        .map(Author::getName)
+                        .collect(Collectors.joining(", "));
+                book.setAuthor(authorNames);
+            }
+        }
     }
 }

@@ -9,7 +9,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "books")
@@ -53,6 +55,17 @@ public class Book {
     @Column(name = "view_count", nullable = false)
     @Builder.Default
     private Long viewCount = 0L;
+
+    // --- C'EST CE BLOC QUI MANQUAIT ---
+    @ManyToMany
+    @JoinTable(
+            name = "book_authors",
+            joinColumns = @JoinColumn(name = "book_id"),
+            inverseJoinColumns = @JoinColumn(name = "author_id")
+    )
+    @Builder.Default
+    private Set<Author> authors = new HashSet<>();
+    // ----------------------------------
 
     @ManyToMany
     @JoinTable(
