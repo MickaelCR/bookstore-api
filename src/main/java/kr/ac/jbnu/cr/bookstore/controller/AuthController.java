@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import kr.ac.jbnu.cr.bookstore.dto.request.LoginRequest;
 import kr.ac.jbnu.cr.bookstore.dto.request.RefreshTokenRequest;
 import kr.ac.jbnu.cr.bookstore.dto.request.RegisterRequest;
+import kr.ac.jbnu.cr.bookstore.dto.request.SocialLoginRequest;
 import kr.ac.jbnu.cr.bookstore.dto.response.AuthResponse;
 import kr.ac.jbnu.cr.bookstore.dto.response.ErrorResponse;
 import kr.ac.jbnu.cr.bookstore.dto.response.MessageResponse;
@@ -54,6 +55,20 @@ public class AuthController {
     })
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/google")
+    @Operation(summary = "Social Login (Google)", description = "Authentification via un token Firebase (Google ID Token)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Login successful"),
+            @ApiResponse(responseCode = "400", description = "Validation error",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Invalid token",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public ResponseEntity<AuthResponse> googleLogin(@Valid @RequestBody SocialLoginRequest request) {
+        AuthResponse response = authService.socialLogin(request);
         return ResponseEntity.ok(response);
     }
 
