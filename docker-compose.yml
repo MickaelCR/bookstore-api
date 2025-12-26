@@ -31,7 +31,7 @@ services:
       - bookstore-network
 
   bookstore-api:
-    build: .
+    build: .                 # Utilise le Dockerfile à la racine (Backend)
     container_name: bookstore-api
     ports:
       - "8080:8080"
@@ -49,6 +49,18 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    networks:
+      - bookstore-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bookstore-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - bookstore-api
     networks:
       - bookstore-network
 

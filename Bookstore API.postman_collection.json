@@ -257,7 +257,8 @@
 									"",
 									"pm.test('Error message indicates invalid credentials', function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.detail.toLowerCase()).to.include('invalid');",
+									"    // CORRECTED: Check 'message' instead of 'detail'",
+									"    pm.expect(jsonData.message.toLowerCase()).to.include('invalid');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -776,7 +777,8 @@
 									"",
 									"pm.test('Error message indicates resource not found', function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.detail.toLowerCase()).to.include('not found');",
+									"    // CORRECTED: Check 'message' instead of 'detail'",
+									"    pm.expect(jsonData.message.toLowerCase()).to.include('not found');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -862,6 +864,19 @@
 				},
 				{
 					"name": "Delete Category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "DELETE",
 						"header": [
@@ -1252,6 +1267,19 @@
 				},
 				{
 					"name": "Delete Book",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "DELETE",
 						"header": [
@@ -1481,6 +1509,19 @@
 				},
 				{
 					"name": "Delete Review",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "DELETE",
 						"header": [
@@ -1674,6 +1715,19 @@
 				},
 				{
 					"name": "Remove Item from Cart",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "DELETE",
 						"header": [
@@ -1698,6 +1752,19 @@
 				},
 				{
 					"name": "Clear Cart",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "DELETE",
 						"header": [
@@ -2042,6 +2109,19 @@
 				},
 				{
 					"name": "Remove from Favorites",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "DELETE",
 						"header": [
@@ -2177,7 +2257,8 @@
 									"",
 									"pm.test('Error indicates duplicate', function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.detail.toLowerCase()).to.include('exist');",
+									"    // CORRECTED: Check 'message' instead of 'detail'",
+									"    pm.expect(jsonData.message.toLowerCase()).to.include('exist');",
 									"});"
 								],
 								"type": "text/javascript"

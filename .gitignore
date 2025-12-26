@@ -53,3 +53,4 @@ logs/
 # Application
 temp/
 src/main/resources/firebase-service-account.json
+frontend/node_modules/
