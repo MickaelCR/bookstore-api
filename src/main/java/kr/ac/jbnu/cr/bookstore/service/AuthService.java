@@ -1,7 +1,11 @@
 package kr.ac.jbnu.cr.bookstore.service;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.FirebaseToken;
 import kr.ac.jbnu.cr.bookstore.dto.request.LoginRequest;
 import kr.ac.jbnu.cr.bookstore.dto.request.RegisterRequest;
+import kr.ac.jbnu.cr.bookstore.dto.request.SocialLoginRequest;
 import kr.ac.jbnu.cr.bookstore.dto.response.AuthResponse;
 import kr.ac.jbnu.cr.bookstore.dto.response.UserResponse;
 import kr.ac.jbnu.cr.bookstore.exception.DuplicateResourceException;
@@ -30,12 +34,10 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        // Check duplicate email
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("Email already exists: " + request.getEmail());
         }
 
-        // Create user
         User user = User.builder()
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
@@ -45,7 +47,6 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
-        // Generate tokens
         String accessToken = jwtService.createToken(savedUser);
         String refreshToken = jwtService.createRefreshToken(savedUser);
 
@@ -58,21 +59,17 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        // Find user by email
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
 
-        // Check password
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new UnauthorizedException("Invalid email or password");
         }
 
-        // Check if user is active
-        if (!user.getIsActive()) {
+        if (user.getIsActive() != null && !user.getIsActive()) {
             throw new UnauthorizedException("Account is deactivated");
         }
 
-        // Generate tokens
         String accessToken = jwtService.createToken(user);
         String refreshToken = jwtService.createRefreshToken(user);
 
@@ -85,20 +82,16 @@ public class AuthService {
     }
 
     public AuthResponse refresh(String refreshToken) {
-        // Validate refresh token
         Long userId = jwtService.getUser(refreshToken)
                 .orElseThrow(() -> new UnauthorizedException("Invalid refresh token"));
 
-        // Find user
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UnauthorizedException("User not found"));
 
-        // Check if user is active
-        if (!user.getIsActive()) {
+        if (user.getIsActive() != null && !user.getIsActive()) {
             throw new UnauthorizedException("Account is deactivated");
         }
 
-        // Generate new tokens
         String newAccessToken = jwtService.createToken(user);
         String newRefreshToken = jwtService.createRefreshToken(user);
 
@@ -108,5 +101,45 @@ public class AuthService {
                 jwtService.getExpiration(),
                 UserResponse.from(user)
         );
+    }
+
+    @Transactional
+    public AuthResponse socialLogin(SocialLoginRequest request) {
+        try {
+            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(request.getToken());
+
+            String email = decodedToken.getEmail();
+            String name = decodedToken.getName();
+            String uid = decodedToken.getUid();
+
+            User user = userRepository.findByEmail(email).orElse(null);
+
+            if (user == null) {
+                user = User.builder()
+                        .email(email)
+                        .username(name != null ? name : "User_" + uid.substring(0, 5))
+                        .passwordHash(passwordEncoder.encode("SOCIAL_" + uid))
+                        .build();
+
+                user = userRepository.save(user);
+            }
+
+            if (user.getIsActive() != null && !user.getIsActive()) {
+                throw new UnauthorizedException("Account is deactivated");
+            }
+
+            String accessToken = jwtService.createToken(user);
+            String refreshToken = jwtService.createRefreshToken(user);
+
+            return AuthResponse.of(
+                    accessToken,
+                    refreshToken,
+                    jwtService.getExpiration(),
+                    UserResponse.from(user)
+            );
+
+        } catch (FirebaseAuthException e) {
+            throw new UnauthorizedException("Invalid Firebase Token: " + e.getMessage());
+        }
     }
 }
